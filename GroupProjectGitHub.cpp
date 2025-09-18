@@ -1,65 +1,119 @@
 #include <iostream>
-#include <cstdlib>
-#include <ctime>
 #include <vector>
+#include <map>
+#include <random>
+#include <algorithm>
+#include <stdexcept>
 
 using namespace std;
 
-//оператор робочий
-struct PointFinder {
-	void operator()(int NumberOfPoints, int NumberOfChecks, int TargetNumber) const {
+// Functor class: generates a random cell on a square board
+class RandomCell {
+public:
+    explicit RandomCell(int n)
+        : size(n),
+        gen(random_device{}()),
+        dist(0, n - 1)
+    {
+        if (n <= 0)
+        {
+            throw invalid_argument("Board size must be positive");
+        }
+    }
 
-		int Sheet = NumberOfPoints * NumberOfPoints;
+    // operator () returns a random cell (x, y)
+    pair<int, int> operator()()
+    {
+        return { dist(gen), dist(gen) };
+    }
 
-		vector<vector<int>> sets(NumberOfChecks, vector<int>(Sheet));
-
-		srand(time(0));
-
-		for (int i = 0; i < NumberOfChecks; i++)
-		{
-			for (int j = 0; j < Sheet; j++)
-			{
-				sets[i][j] = rand() % Sheet + 1;
-			}
-		}
-
-		double Total = 0;
-		for (int i = 0; i < NumberOfChecks; i++)
-		{
-			int Count;
-			for (int j = 0; j < Sheet; j++)
-			{
-				if (sets[i][j] == TargetNumber)
-				{
-					Count++;
-				}
-			}
-			Total += Count;
-		}
-
-		double Average = Total / NumberOfChecks;
-		cout << "number " << TargetNumber << "encounters " << Average << "times";
-
-	}
+private:
+    int size;
+    mt19937 gen;
+    uniform_int_distribution<int> dist;
 };
+
+// Compute average multiplicity
+double averageMultiplicity(const map<pair<int, int>, int>& freq, int total)
+{
+    if (freq.empty())
+    {
+        return 0.0;
+    }
+    return static_cast<double>(total) / freq.size();
+}
+
+// Compute median multiplicity
+double medianMultiplicity(const map<pair<int, int>, int>& freq)
+{
+    if (freq.empty())
+    {
+        return 0.0;
+    }
+    vector<int> counts;
+    counts.reserve(freq.size());
+    for (auto it = freq.begin(); it != freq.end(); ++it)
+    {
+        counts.push_back(it->second);
+    }
+    sort(counts.begin(), counts.end());
+
+    size_t n = counts.size();
+    if (n % 2 == 1)
+    {
+        return counts[n / 2];
+    }
+    else
+    {
+        return (counts[n / 2 - 1] + counts[n / 2]) / 2.0;
+    }
+}
 
 int main()
 {
-	PointFinder PF;
+    try
+    {
+        int boardSize, numSelections;
+        cout << "Enter board size N: ";
+        if (!(cin >> boardSize))
+        {
+            throw runtime_error("Invalid input for N");
+        }
 
-	int TargetNumber, NumberOfChecks, NumberOfPoints;
+        cout << "Enter number of selections K: ";
+        if (!(cin >> numSelections))
+        {
+            throw runtime_error("Invalid input for K");
+        }
 
-	cout << "enter number for sheet ";
-	cin >> NumberOfPoints;
-	cout << endl;
+        if (boardSize <= 0 || numSelections <= 0)
+        {
+            throw invalid_argument("N and K must be positive");
+        }
 
-	cout << "enter number of checks ";
-	cin >> NumberOfChecks;
-	cout << endl;
+        // Create random cell generator
+        RandomCell rc(boardSize);
+        map<pair<int, int>, int> freq;
 
-	cout << "enter target number ";
-	cin >> TargetNumber;
-	cout << endl;
+        // Select cells
+        for (int i = 0; i < numSelections; ++i)
+        {
+            auto cell = rc();
+            freq[cell]++;
+        }
 
+        // Compute results
+        double avg = averageMultiplicity(freq, numSelections);
+        double med = medianMultiplicity(freq);
+
+        cout << "Average multiplicity: " << avg << "\n";
+        cout << "Median multiplicity: " << med << "\n";
+    }
+    catch (const exception& ex)
+    {
+        cerr << "Error: " << ex.what() << "\n";
+        return 1;
+    }
+
+    return 0;
 }
-//якийсь текст
