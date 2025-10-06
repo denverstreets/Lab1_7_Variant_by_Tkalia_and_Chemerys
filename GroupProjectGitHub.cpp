@@ -7,6 +7,8 @@
 
 using namespace std;
 
+//Compiler - Microsoft Visual C++
+
 // Functor class: generates a random cell on a square board
 class RandomCell {
 public:
